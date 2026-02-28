@@ -7,11 +7,11 @@ from   matplotlib.animation import FuncAnimation
 1: CREATE GRID
 '''
 Nx     = 500
-x      = np.linspace(1, 1000.0, Nx)   # range of positions
+x      = np.linspace(0.01, 10.0, Nx)   # range of positions
 dx     = x[1] - x[0]
 
 dt     = 1e-4                         # timestep
-t_max  = 10.0                         # final time
+t_max  = 1.0                          # final time
 Nt     = int(t_max / dt)              # number of timesteps
 t      = np.linspace(0, t_max, Nt)    # array of time values
 
@@ -19,13 +19,13 @@ t      = np.linspace(0, t_max, Nt)    # array of time values
 '''
 2: INITIAL CONDITIONS
 '''
-nu     = 0.1                          # viscosity 
-x0     = 500                          # initial gaussian profile
-std    = 50
+nu     = 3                            # viscosity 
+x0     = 5                            # initial gaussian profile
+std    = 0.5
 Sigma0 = np.exp(-(x - x0)**2 / (2 * std**2))
 
 D      = 3 * nu                       # difussion coefficient
-u      = 9 * nu / 2 / x              # velocity
+u      = - 9 * nu / 2 / x             # velocity
 beta   = dt / dx**2 * D               # parameter in implicit method
 sqrt_x = np.sqrt(x)                   # factor in the differential equation
 
@@ -40,7 +40,7 @@ else:
 '''
 3: IMPLICIT DIFFUSION SOLVER
 '''
-A     = np.eye(Nx) * (1.0 + 2.0 * beta) + np.eye(Nx, k=1) * (-beta) + np.eye(Nx, k=-1) * (-beta)
+A     = np.eye(Nx-2) * (1.0 + 2.0 * beta) + np.eye(Nx-2, k=1) * (-beta) + np.eye(Nx-2, k=-1) * (-beta)
 def implicit_method(f):
     T         = f.copy()
 
@@ -52,8 +52,8 @@ def implicit_method(f):
 def lax_friedrichs(f):
     f_i       = np.zeros_like(f, dtype=np.float64)
 
-    # Lax-Friedrichs method for interior points
-    f_i[1:-1] = 0.5 * (f[2:] + f[:-2]) - (dt / (2 * dx)) * (u[2:] * f[2:] - u[:-2] * f[:-2])
+    f_i[1:-1] = 0.5 * (f[2:] + f[:-2]) - (dt * u[1:-1] / (2 * dx)) * (f[2:] - f[:-2])
+
 
     return f_i
 
@@ -69,22 +69,20 @@ for i, t_i in enumerate(t):
     if t_i == 0 and i == 0:
         Sigma[i] = Sigma0.copy()
     else:
-        # solve differential equation for Sigma * sqrt(x)
-        F    = Sigma[i-1] * sqrt_x
+        Sigma_i        = np.zeros_like(Sigma0, dtype=np.float64)
 
         # solve difussion part of the equation
-        F_d  = implicit_method(F)
+        Sigma_i[1:-1]  = implicit_method(Sigma[i-1][1:-1])
+        Sigma_i[0]     = Sigma_i[1]      # outflow boundary conditions
+        Sigma_i[-1]    = Sigma_i[-2]
 
         # solve advection part of the equation
-        F_a  = lax_friedrichs(F_d)
-        f    = F_a / sqrt_x
-
-        # apply boundary conditions
-        f[0] = f[1]      # left boundary: outflow
-        f[-1]= f[-2]
+        Sigma_i        = lax_friedrichs(Sigma_i)
+        Sigma_i[0]     = Sigma_i[1]      # outflow boundary conditions
+        Sigma_i[-1]    = Sigma_i[-2]
 
         # recover the surface density
-        Sigma[i] = f
+        Sigma[i] = Sigma_i
 
 # save simulation output
 np.save('output.npy', Sigma)
@@ -100,7 +98,7 @@ Sigma  = np.load('output.npy')
 
 # choose 100 frames evenly from all timesteps
 Nt            = Sigma.shape[0]
-num_frames    = 100
+num_frames    = 500
 frame_indices = np.linspace(0, Nt-1, num_frames, dtype=int)
 Sigma_anim    = Sigma[frame_indices]
 
@@ -109,7 +107,7 @@ line,  = ax.plot(x, Sigma[0], '-', color='black', lw=1)
 
 ax.set_xlabel('$x$')
 ax.set_ylabel(r'$\Sigma\:(x, \tau)$');
-ax.set_xlim(0, 1000)
+ax.set_xlim(0, 10)
 ax.set_ylim(0, 1.1)
 
 plt.tight_layout()
