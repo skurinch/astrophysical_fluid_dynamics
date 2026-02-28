@@ -7,7 +7,7 @@ from   matplotlib.animation import FuncAnimation
 1: CREATE GRID
 '''
 Nx     = 500
-x      = np.linspace(0.01, 10.0, Nx)   # range of positions
+x      = np.linspace(0.01, 10.0, Nx)  # range of positions
 dx     = x[1] - x[0]
 
 dt     = 1e-4                         # timestep
@@ -31,7 +31,7 @@ sqrt_x = np.sqrt(x)                   # factor in the differential equation
 
 
 print('-------stability criterion--------')
-if np.max(np.abs(u)) * dt / dx <= 1:  # check if the CFL criteion is satisfied
+if np.max(np.abs(u)) * dt / dx <= 1:  # check if the Courant condition is satisfied
     stable = 'yes'
 else:
     stable = 'no'
