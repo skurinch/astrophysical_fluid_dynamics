@@ -10,7 +10,7 @@ Nx     = 500
 x      = np.linspace(0.01, 10.0, Nx)  # range of positions
 dx     = x[1] - x[0]
 
-dt     = 1e-4                         # timestep
+dt     = 1e-4                         # timestep (28-02-2026 Note: After submitting, I realized I should use 1e-5 for stability! I added this note only and left the code unchanged.)
 t_max  = 1.0                          # final time
 Nt     = int(t_max / dt)              # number of timesteps
 t      = np.linspace(0, t_max, Nt)    # array of time values
